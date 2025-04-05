@@ -1,0 +1,125 @@
+/*
+    =======================================
+    SQL to Create Database and Product Table
+    =======================================
+    CREATE DATABASE aman_db;
+
+    USE aman_db;
+
+    CREATE TABLE Product (
+        ProductID INT PRIMARY KEY,
+        ProductName VARCHAR(100),
+        Price DOUBLE,
+        Quantity INT
+    );
+*/
+
+import java.sql.*;
+import java.util.Scanner;
+
+public class ProductCRUD {
+
+    static final String URL = "jdbc:mysql://localhost:3306/aman_db";
+    static final String USER = "root";        // your MySQL username
+    static final String PASSWORD = "123456";  // your MySQL password
+
+    public static void main(String[] args) {
+
+        Scanner sc = new Scanner(System.in);
+
+        try (Connection conn = DriverManager.getConnection(URL, USER, PASSWORD)) {
+
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            conn.setAutoCommit(false); // Enable transaction control
+
+            while (true) {
+                System.out.println("\n--- PRODUCT MENU ---");
+                System.out.println("1. Create Product");
+                System.out.println("2. Read Products");
+                System.out.println("3. Update Product");
+                System.out.println("4. Delete Product");
+                System.out.println("5. Exit");
+                System.out.print("Choose option: ");
+                int choice = sc.nextInt();
+
+                switch (choice) {
+                    case 1 -> {
+                        System.out.print("Enter ProductID: ");
+                        int id = sc.nextInt();
+                        sc.nextLine();
+                        System.out.print("Enter Product Name: ");
+                        String name = sc.nextLine();
+                        System.out.print("Enter Price: ");
+                        double price = sc.nextDouble();
+                        System.out.print("Enter Quantity: ");
+                        int qty = sc.nextInt();
+
+                        String insertQuery = "INSERT INTO Product VALUES (?, ?, ?, ?)";
+                        try (PreparedStatement pst = conn.prepareStatement(insertQuery)) {
+                            pst.setInt(1, id);
+                            pst.setString(2, name);
+                            pst.setDouble(3, price);
+                            pst.setInt(4, qty);
+                            pst.executeUpdate();
+                            conn.commit();
+                            System.out.println("Product inserted successfully.");
+                        } catch (SQLException e) {
+                            conn.rollback();
+                            System.out.println("Insert failed: " + e.getMessage());
+                        }
+                    }
+
+                    case 2 -> {
+                        String readQuery = "SELECT * FROM Product";
+                        try (Statement stmt = conn.createStatement();
+                             ResultSet rs = stmt.executeQuery(readQuery)) {
+                            System.out.println("\nProductID | Name | Price | Quantity");
+                            while (rs.next()) {
+                                System.out.println(rs.getInt(1) + " | " + rs.getString(2)
+                                        + " | " + rs.getDouble(3) + " | " + rs.getInt(4));
+                            }
+                        }
+                    }
+
+                    case 3 -> {
+                        System.out.print("Enter ProductID to Update: ");
+                        int id = sc.nextInt();
+                        sc.nextLine();
+                        System.out.print("New Name: ");
+                        String name = sc.nextLine();
+                        System.out.print("New Price: ");
+                        double price = sc.nextDouble();
+                        System.out.print("New Quantity: ");
+                        int qty = sc.nextInt();
+
+                        String updateQuery = "UPDATE Product SET ProductName=?, Price=?, Quantity=? WHERE ProductID=?";
+                        try (PreparedStatement pst = conn.prepareStatement(updateQuery)) {
+                            pst.setString(1, name);
+                            pst.setDouble(2, price);
+                            pst.setInt(3, qty);
+                            pst.setInt(4, id);
+                            int rows = pst.executeUpdate();
+                            if (rows > 0) {
+                                conn.commit();
+                                System.out.println("Product updated successfully.");
+                            } else {
+                                System.out.println("No product found with given ID.");
+                            }
+                        } catch (SQLException e) {
+                            conn.rollback();
+                            System.out.println("Update failed: " + e.getMessage());
+                        }
+                    }
+
+                    case 4 -> {
+                        System.out.print("Enter ProductID to Delete: ");
+                        int id = sc.nextInt();
+                        String deleteQuery = "DELETE FROM Product WHERE ProductID=?";
+                        try (PreparedStatement pst = conn.prepareStatement(deleteQuery)) {
+                            pst.setInt(1, id);
+                            int rows = pst.executeUpdate();
+                            if (rows > 0) {
+                                conn.commit();
+                                System.out.println("Product deleted.");
+                            } else {
+                                System.out.println
